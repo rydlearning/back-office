@@ -1,0 +1,57 @@
+/**
+Global table background removed
+ */
+td {
+    background-color: transparent !important;
+    font-size: 12px;
+}
+
+tr:hover .pureTable {
+    background-color: #88167a !important;
+    color: #ffffff !important;
+}
+
+.divTable{
+    overflow: scroll;
+    width: 98%;
+}
+
+.blink {
+    animation: blink-animation 1s steps(5, start) infinite;
+    -webkit-animation: blink-animation 1s steps(5, start) infinite;
+}
+
+@keyframes blink-animation {
+    to {
+        visibility: hidden;
+    }
+}
+
+@-webkit-keyframes blink-animation {
+    to {
+        visibility: hidden;
+    }
+}
+
+/* Enable scrolling without breaking table layout */
+table {
+    overflow-x: auto; /* Allows scrolling */
+}
+
+
+
+.promo{
+    display:flex;
+    align-items: center;
+    border: 1px solid #ddd;
+    padding: 0 10px;
+    border-radius: 5px;
+}
+.promo input{
+    width: 100%;
+    border: none;
+}
+
+.promo svg{
+    cursor: pointer;
+}
