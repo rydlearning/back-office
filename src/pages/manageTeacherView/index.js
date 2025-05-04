@@ -10,10 +10,8 @@ import { baseUrl } from '../../Network';
 import Moment from 'react-moment';
 import moment from 'moment-timezone';
 import 'moment-timezone';
-import { convertSingleLessonTimes, convertSingleLessonTimesProgram } from "../../utils";
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-
 
 
 const TIMES_ = [
@@ -68,7 +66,7 @@ const formatDay = (day) => {
     return days[day];
 };
 
-const ManageProgram = () => {
+const ManageTeacherView = () => {
     document.title = "Manage Program | RYD Admin";
 
     const [programs, setPrograms] = useState([]);
@@ -95,20 +93,6 @@ const ManageProgram = () => {
         fetchPrograms().then(r => null);
     }, [modal]);
 
-
-    const handleAssignClick = (programData) => {
-        setSelectedProgram(programData);
-        setAssignModal(true)
-    };
-
-    const handleActionAssignClick = (programData) => {
-        setMultiTargetIDs({})
-        setAssignActionModal(true)
-    };
-
-    const handleTeacherChange = (e) => {
-        setSelectedTeacher(e.target.value);
-    };
 
     useEffect(() => {
         fetchPrograms().then(r => null)
@@ -174,39 +158,6 @@ const ManageProgram = () => {
         }
     };
 
-    const handleTeacherAssignClick = async () => {
-        try {
-            await axios.post(`${baseUrl}/admin/program/assign/teacher`, {
-                programIds: selectedProgram.id,
-                teacherId: selectedTeacher
-            });
-            // Fetch the updated programs after successful assignment
-            await fetchPrograms(); // Assuming fetchPrograms function updates the programs state
-
-            toast.success("Teacher assigned successfully.");
-            setAssignModal(false);
-        } catch (error) {
-            console.error("Error:", error);
-            toast.error("Failed to assign teacher.");
-        }
-    };
-
-    const handleProgramClickSubmit = async () => {
-        if (!selectedProgram || !selectedProgram?.id) {
-            //console.error("Invalid program data.");
-            toast.warn("Reload this page and try again")
-            return;
-        }
-        //if nothing was picked
-        if (Object.keys(programMData).length < 1) {
-            toast.dark("No changes were made...")
-            return;
-        }
-        //check and push to server
-        await axios.put(`${baseUrl}/admin/program/edit/${selectedProgram.id}`, programMData);
-        toast.success("Program data altered changes");
-        await fetchPrograms()
-    }
 
     const handleToggleIsPaid = async (programData) => {
         try {
@@ -236,69 +187,46 @@ const ManageProgram = () => {
         }
     };
 
-    const handleProgramClick = (programData) => {
-        // Pass program data to toggle for editing
-        setSelectedProgram(programData)
-        setModal(true)
-    };
-
-    const processBatchOperations = async () => {
-        //performing group actions
-        try {
-            if (multiIDs.length > 0 && Object.keys(multiTargetIDs).length > 0) {
-                await axios.post(`${baseUrl}/admin/program/batch-update`, { ids: multiIDs, ...multiTargetIDs });
-                toast.success("Program data altered changes");
-                await fetchPrograms()
-            } else {
-                toast.error("Please, select at least 1 child/program to perform action")
-            }
-        } catch (e) {
-            toast.error("Reload this page and try again")
-        }
-    }
-
-    const processCertificate = async () => {
-        //performing group actions
-        try {
-            if (multiIDs.length > 0) {
-                const response = await axios.post(`${baseUrl}/admin/parent/certificate`, { id: multiIDs });
-                if (!response.data.status) {
-                    toast.error(response.data.message);
-                } else {
-                    toast.success("Certificate downloader email  sent successfully");
-                    // await fetchPrograms()
-                }
-
-            } else {
-                toast.error("Please, select at least 1 child/program to perform action")
-            }
-        } catch (e) {
-            toast.error("Reload this page and try again")
-        }
-    }
-
-    const processSingleCertificate = async (id) => {
-        //performing group actions
-        try {
-            if (id) {
-                const response = await axios.post(`${baseUrl}/admin/parent/single/certificate`, { id });
-                if (!response.data.status) {
-                    toast.error(response.data.message);
-                } else {
-                    toast.success("Certificate downloader email  sent successfully");
-                    // await fetchPrograms()
-                }
-
-            } else {
-                toast.error("Error, Try again later")
-            }
-        } catch (e) {
-            toast.error("Reload this page and try again")
-        }
-    }
-
     const getStatusColor = (status) => {
         return status === 1 ? 'green' : 'gray';
+    };
+
+    const convertSingleLessonTimesProgram = (time, timezone, day) => {
+        if (!time || !timezone || day === undefined) return '';
+
+        // Get the time in format "HH:MMAM/PM" (e.g., "8:00AM")
+        const timeStr = formatTime(time);
+
+        try {
+            // Parse the time string into hours and minutes
+            const [timePart, period] = timeStr.match(/(\d+):(\d+)([AP]M)/).slice(1);
+            let hours = parseInt(timePart, 10);
+            const minutes = parseInt(period, 10);
+
+            // Convert to 24-hour format
+            if (period === 'PM' && hours !== 12) {
+                hours += 12;
+            } else if (period === 'AM' && hours === 12) {
+                hours = 0;
+            }
+
+            // Create a moment object in the program's timezone (UTC)
+            const programTime = moment().utc()
+                .day(day)
+                .hour(hours)
+                .minute(minutes)
+                .second(0);
+
+            // Convert to parent's timezone
+            const parentTime = programTime.clone().tz(timezone);
+
+            // Format the time in 12-hour format with AM/PM
+            return parentTime.format('h:mmA');
+
+        } catch (error) {
+            console.error('Error converting lesson time:', error);
+            return timeStr; // Return original time if conversion fails
+        }
     };
 
     const exportToExcel = () => {
@@ -333,20 +261,19 @@ const ManageProgram = () => {
         saveAs(data, `programs_export_${new Date().getTime()}` + fileExtension);
     };
 
-
     return (
         <React.Fragment>
             <ToastContainer />
             <div className="page-content">
                 <Container fluid>
-                    <Breadcrumbs title="Dashboard" breadcrumbItem="Manage Program" />
+                    <Breadcrumbs title="Dashboard" breadcrumbItem="Manage Techer View" />
                     <Row>
                         <Col lg="12">
                             <Row className="align-items-center me-2">
                                 <Col md={4}>
                                     <div className="mb-3">
                                         <h5 className="card-title">
-                                            Manage List Program{" "}
+                                            Manage Techer View{" "}
                                             <span className="text-muted fw-normal ms-2">({displayProgramList.length})</span>
                                         </h5>
                                     </div>
@@ -474,25 +401,6 @@ const ManageProgram = () => {
                                                     ))}
                                             </select>
                                         </div>
-                                        <div >
-                                            <button
-                                                onClick={() => {
-                                                    if (confirm(`You're about to send a certificate downloader email to ${multiIDs.length} parent that their child have completed this probono, will you like to proceed ?`)) {
-                                                        processCertificate();
-                                                    }
-                                                }}
-                                                title="Send certificate email to parents"
-                                            >
-                                                <i className="mdi mdi-mail font-size-20"></i>
-                                            </button>
-                                        </div>
-                                        <div style={{ marginRight: 0 }}>
-                                            <button onClick={handleActionAssignClick}>
-                                                {/* <i className="mdi mdi-run-fast font-size-20"></i> */}
-                                                {/* <span className={'m-2'}></span> */}
-                                                <i className="mdi mdi-clipboard-account font-size-20"></i>
-                                            </button>
-                                        </div>
                                         <div>
                                             <button
                                                 onClick={() => {
@@ -502,7 +410,7 @@ const ManageProgram = () => {
                                                 }}
                                                 title="Export to Excel"
                                             >
-                                                <i className="mdi mdi-file-excel font-size-20"></i> 
+                                                <i className="mdi mdi-file-excel font-size-20"></i>
                                             </button>
                                         </div>
                                     </div>
@@ -524,11 +432,8 @@ const ManageProgram = () => {
                                         <table className="table align-middle table-hover">
                                             <thead>
                                                 <tr>
-                                                    <th>#{multiIDs?.length || ""}</th>
-                                                    <th>P.Name</th>
+                                                    <th>#{multiIDs.length || ""}</th>
                                                     <th>C.Name</th>
-                                                    <th>Phone</th>
-                                                    <th>Email</th>
                                                     <th>Age</th>
                                                     <th>Gender</th>
                                                     <th>T.Name</th>
@@ -539,7 +444,6 @@ const ManageProgram = () => {
                                                     <th>Day</th>
                                                     <th>Curriculum</th>
                                                     <th>Status</th>
-                                                    <th></th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -563,13 +467,10 @@ const ManageProgram = () => {
                                                                 {index + 1}
                                                             </div>
                                                         </td>
-                                                        <td>{program?.child?.parent?.firstName + " " + program?.child?.parent?.lastName}</td>
                                                         <td>{program?.child?.firstName + " " + program?.child?.lastName}
                                                             <br />
                                                             [{program?.child?.parent?.country}]
                                                         </td>
-                                                        <td>{program?.child?.parent?.phone}</td>
-                                                        <td>{program?.child?.parent?.email}</td>
                                                         <td>{program?.child?.age}</td>
                                                         <td>{program?.child?.gender}</td>
                                                         <td>{program?.teacher?.firstName}</td>
@@ -583,8 +484,8 @@ const ManageProgram = () => {
                                                         <td>{formatTime(program.time)}</td>
                                                         <td><td>{convertSingleLessonTimesProgram(formatTime(program.time), program?.child?.parent?.timezone, formatDay(program.day))}</td></td>
                                                         <td>{formatDay(program.day)}</td>
-                                                        <td> <span style={{ color: getStatusColor(program?.child?.curriculum) }}>
-                                                            {program?.child?.curriculum === 1 ? 'New' : 'Old'}
+                                                        <td> <span style={{ color: getStatusColor(program.curriculum) }}>
+                                                            {program.curriculum === 1 ? 'New' : 'Old'}
                                                         </span>
                                                         </td>
                                                         <td>
@@ -618,255 +519,11 @@ const ManageProgram = () => {
                                                                 <small style={{ fontSize: 10 }}><Moment format={'DD-MM-YY'} date={program?.createdAt} /></small>
                                                             </div>
                                                         </td>
-                                                        <td>
-                                                            <Link
-                                                                title={"Update program package info"}
-                                                                className="text-danger"
-                                                                to="#"
-                                                                id="edit"
-                                                                onClick={() => handleProgramClick(program)}>
-                                                                <i className="mdi mdi-clock-outline font-size-12"></i>
-                                                            </Link>
-                                                            <Link
-                                                                className="text-success"
-                                                                to="#"
-                                                                id="certificate"
-                                                                onClick={() => {
-                                                                    if (confirm(`You're about to send a certificate downloader email to ${program?.child?.parent?.firstName + " " + program?.child?.parent?.lastName}, will you like to proceed ?`)) {
-                                                                        processSingleCertificate(program.id);
-                                                                    }
-                                                                }}>
-                                                                <i className="mdi mdi-mail font-size-12"></i>
-                                                            </Link>
-                                                            <Link
-                                                                title={"Manage program teacher"}
-                                                                className="text-primary"
-                                                                to="#"
-                                                                id="assign"
-                                                                onClick={() => handleAssignClick(program)}>
-                                                                <i className="mdi mdi-clipboard-account font-size-12"></i>
-                                                            </Link>
-
-                                                        </td>
                                                     </tr>
                                                 ))}
                                             </tbody>
                                         </table>
                                     )}
-                                    <Modal isOpen={modal} toggle={() => setModal(!modal)}>
-                                        <ModalHeader toggle={() => setModal(!modal)}>
-                                            {"Modify Program Data"}
-                                        </ModalHeader>
-                                        <ModalBody>
-                                            <Row>
-                                                <small className={'mb-2 text-danger'}>Warning: Check and be sure of
-                                                    parent timezone offset before any changes</small>
-                                                <Col xs={12}>
-                                                    <div className="row">
-                                                        <div className="col-md-6">
-                                                            <div className="mb-3">
-                                                                <Label>Cohort</Label>
-                                                                <select className={'form-control'}
-                                                                    onChange={e => setProgramMData({
-                                                                        ...programMData,
-                                                                        cohortId: e.target.value
-                                                                    })}>
-                                                                    <option value="">Select Cohort</option>
-                                                                    {cohorts && cohorts.map((d, i) => <option
-                                                                        key={i} value={d.id}>{d.title}</option>)}
-                                                                </select>
-                                                            </div>
-                                                        </div>
-                                                        <div className="col-md-6">
-                                                            <div className="mb-3">
-                                                                <Label>Packages</Label>
-                                                                <select className={'form-control'}
-                                                                    onChange={e => setProgramMData({
-                                                                        ...programMData,
-                                                                        packageId: e.target.value
-                                                                    })}>
-                                                                    <option value="">Select Package</option>
-                                                                    {packages && packages.map((d, i) => <option
-                                                                        key={i} value={d.id}>{d.title}</option>)}
-                                                                </select>
-                                                            </div>
-                                                        </div>
-                                                        <div className="col-md-6">
-                                                            <div className="mb-3">
-                                                                <Label>Level</Label>
-                                                                <select className={'form-control'}
-                                                                    onChange={e => setProgramMData({
-                                                                        ...programMData,
-                                                                        level: e.target.value
-                                                                    })}>
-                                                                    <option value="">Select Level</option>
-                                                                    <option value="4">4</option>
-                                                                    <option value="3">3</option>
-                                                                    <option value="2">2</option>
-                                                                    <option value="1">1</option>
-                                                                </select>
-                                                            </div>
-                                                        </div>
-                                                        <div className="col-md-6">
-                                                            <div className="mb-3">
-                                                                <Label>Day</Label>
-                                                                <select className={'form-control'}
-                                                                    onChange={e => setProgramMData({
-                                                                        ...programMData,
-                                                                        day: e.target.value
-                                                                    })}>
-                                                                    <option value="">Select Day</option>
-                                                                    {days.map((d, i) => <option
-                                                                        key={i} value={i}>{d}</option>)}
-                                                                </select>
-                                                            </div>
-                                                        </div>
-                                                        <div className="col-md-6">
-                                                            <div className="mb-3">
-                                                                <Label>Time</Label>
-                                                                <select className={'form-control'}
-                                                                    onChange={e => setProgramMData({
-                                                                        ...programMData,
-                                                                        time: e.target.value
-                                                                    })}>
-                                                                    <option value="">Select Time</option>
-                                                                    {TIMES_.map((d, i) => <option
-                                                                        key={i} value={i}>{d}</option>)}
-                                                                </select>
-                                                            </div>
-                                                        </div>
-
-                                                    </div>
-                                                </Col>
-                                            </Row>
-                                            <Row>
-                                                <Col>
-                                                    <div className="text-end">
-                                                        <button
-                                                            onClick={handleProgramClickSubmit}
-                                                            className="btn btn-primary save-user">
-                                                            Update Program Data
-                                                        </button>
-                                                    </div>
-                                                </Col>
-                                            </Row>
-                                        </ModalBody>
-                                    </Modal>
-
-                                    <Modal isOpen={assignModal} toggle={() => setAssignModal(!assignModal)}>
-                                        <ModalHeader toggle={() => setAssignModal(!assignModal)}>Assign
-                                            Teacher</ModalHeader>
-                                        <ModalBody>
-                                            <Form onSubmit={(e) => {
-                                                e.preventDefault();
-                                                handleTeacherAssignClick().then(r => null);
-                                            }}>
-                                                <Row>
-                                                    <Col xs={12}>
-                                                        <div className="row">
-                                                            <div className="col-md-12">
-                                                                <div className="mb-6">
-                                                                    <Input
-                                                                        name="teacherId"
-                                                                        type="select"
-                                                                        onChange={handleTeacherChange}>
-                                                                        <option value="">Select teacher</option>
-                                                                        {teachers?.length > 0 &&
-                                                                            teachers?.map((teacher) => (
-                                                                                <option key={teacher?.id}
-                                                                                    value={teacher?.id}>
-                                                                                    {teacher.firstName} {teacher.lastName}
-                                                                                </option>
-                                                                            ))}
-                                                                    </Input>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </Col>
-                                                </Row>
-                                                <Row>
-                                                    <Col>
-                                                        <br />
-                                                        <div className="text-end">
-                                                            <button
-                                                                type="submit"
-                                                                className="btn btn-primary save-user">
-                                                                Assign New Teacher
-                                                            </button>
-                                                        </div>
-                                                    </Col>
-                                                </Row>
-                                            </Form>
-                                        </ModalBody>
-                                    </Modal>
-
-                                    <Modal isOpen={assignActionModal}
-                                        toggle={() => setAssignActionModal(!assignActionModal)}>
-                                        <ModalHeader toggle={() => setAssignActionModal(!assignActionModal)}>
-                                            Perform Group Action</ModalHeader>
-                                        <ModalBody>
-                                            <Row>
-                                                <small className={'text-danger mb-3'}>Warning: This action will
-                                                    alter {multiIDs.length} children. confirm again !</small>
-                                                <Col xs={12}>
-                                                    <div className="row">
-                                                        <div className="col-md-6">
-                                                            <div className="mb-6">
-                                                                <select
-                                                                    className={'form-control'}
-                                                                    onChange={e => setMultiTargetIDs({
-                                                                        ...multiTargetIDs,
-                                                                        cohortId: e.target.value
-                                                                    })}>
-                                                                    <option value="">Select Cohort</option>
-                                                                    {cohorts?.length > 0 &&
-                                                                        cohorts?.map((c, i) => (
-                                                                            <option key={i}
-                                                                                value={c.id}>
-                                                                                {c.title}
-                                                                            </option>
-                                                                        ))}
-                                                                </select>
-                                                            </div>
-                                                        </div>
-                                                        <div className="col-md-6">
-                                                            <div className="mb-6">
-                                                                <select
-                                                                    className={'form-control'}
-                                                                    onChange={e => setMultiTargetIDs({
-                                                                        ...multiTargetIDs,
-                                                                        teacherId: e.target.value
-                                                                    })}>
-                                                                    <option value="">Select Teacher</option>
-                                                                    {teachers?.length > 0 &&
-                                                                        teachers?.map((teacher) => (
-                                                                            <option key={teacher?.id}
-                                                                                value={teacher?.id}>
-                                                                                {teacher.firstName} {teacher.lastName}
-                                                                            </option>
-                                                                        ))}
-                                                                </select>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </Col>
-                                            </Row>
-                                            <Row>
-                                                <Col>
-                                                    <br />
-                                                    <div className="text-end">
-                                                        <button
-                                                            onClick={processBatchOperations}
-                                                            type="submit"
-                                                            className="btn btn-primary save-user">
-                                                            Process Batch Data
-                                                        </button>
-                                                    </div>
-                                                </Col>
-                                            </Row>
-                                        </ModalBody>
-                                    </Modal>
-
                                 </Col>
                             </Row>
                         </Col>
@@ -877,4 +534,4 @@ const ManageProgram = () => {
     );
 };
 
-export default withAuth(ManageProgram);
+export default withAuth(ManageTeacherView);

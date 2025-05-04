@@ -65,6 +65,7 @@ const ManagePackage = () => {
         enableReinitialize: true,
         initialValues: {
             title: packageData.title || "",
+            name: packageData.name || "",
             description: packageData.description || "",
             timeGroupId: packageData.timeGroupId || "",
             level: packageData.level || "",
@@ -77,6 +78,7 @@ const ManagePackage = () => {
         },
         validationSchema: Yup.object({
             title: Yup.string().required("Please enter the Title"),
+            name: Yup.string().required("Please enter the Name"),
             description: Yup.string().required("Please enter a description"),
             timeGroupId: Yup.number().optional(),
             level: Yup.number().required("Please enter a level"),
@@ -91,6 +93,7 @@ const ManagePackage = () => {
             try {
                 const newPackage = {
                     title: values.title,
+                    name: values.name,
                     description: values.description,
                     timeGroupId: Number(values.timeGroupId),
                     subClass: subPackages,
@@ -247,6 +250,7 @@ const ManagePackage = () => {
                                     <tr>
                                         <th>#</th>
                                         <th>Title</th>
+                                        <th>Name</th>
                                         <th>Description</th>
                                         <th>Level</th>
                                         <th>SubClass</th>
@@ -261,9 +265,10 @@ const ManagePackage = () => {
                                     {filteredPackages.map((pkg, index) => (
                                         <tr key={index}>
                                             <td>{index + 1}</td>
-                                            <td>{pkg?.title}</td>
-                                            <td>{pkg?.description}</td>
-                                            <td>{pkg?.level}</td>
+                                            <td>{pkg.title}</td>
+                                            <td>{pkg.name}</td>
+                                            <td>{pkg.description}</td>
+                                            <td>{pkg.level}</td>
                                             <td>{pkg?.subClass?.length || 0}</td>
                                             <td>{pkg?.weekDuration}</td>
                                             <td>{pkg?.amount}</td>
@@ -316,6 +321,25 @@ const ManagePackage = () => {
                                                     />
                                                     <FormFeedback type="invalid">
                                                         {validation.errors.title}
+                                                    </FormFeedback>
+                                                </div>
+
+                                                <div className="mb-3">
+                                                    <Label className="form-label">Program Name</Label>
+                                                    <Input
+                                                        name="name"
+                                                        type="text"
+                                                        placeholder="Title"
+                                                        onChange={validation.handleChange}
+                                                        onBlur={validation.handleBlur}
+                                                        value={validation.values.name || ""}
+                                                        invalid={
+                                                            validation.touched.name &&
+                                                            validation.errors.name
+                                                        }
+                                                    />
+                                                    <FormFeedback type="invalid">
+                                                        {validation.errors.name}
                                                     </FormFeedback>
                                                 </div>
 

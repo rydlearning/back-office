@@ -212,3 +212,40 @@ export function convertTimegroupToParentTimezone(timegroup, parentTimezone) {
 }
 
 
+   export const convertLessonTimesProgram = (time, timezone, day) => {
+        if (!time || !timezone || day === undefined) return '';
+        
+        // Get the time in format "HH:MMAM/PM" (e.g., "8:00AM")
+        const timeStr = formatTime(time);
+        
+        try {
+          // Parse the time string into hours and minutes
+          const [timePart, period] = timeStr.match(/(\d+):(\d+)([AP]M)/).slice(1);
+          let hours = parseInt(timePart, 10);
+          const minutes = parseInt(period, 10);
+          
+          // Convert to 24-hour format
+          if (period === 'PM' && hours !== 12) {
+            hours += 12;
+          } else if (period === 'AM' && hours === 12) {
+            hours = 0;
+          }
+          
+          // Create a moment object in the program's timezone (UTC)
+          const programTime = moment().utc()
+            .day(day)
+            .hour(hours)
+            .minute(minutes)
+            .second(0);
+          
+          // Convert to parent's timezone
+          const parentTime = programTime.clone().tz(timezone);
+          
+          // Format the time in 12-hour format with AM/PM
+          return parentTime.format('h:mmA');
+          
+        } catch (error) {
+          console.error('Error converting lesson time:', error);
+          return timeStr; // Return original time if conversion fails
+        }
+      };

@@ -38,6 +38,9 @@ import ManagePromo from "../pages/managePromo";
 import ManagePromoProgram from "../pages/managePromoProgram/ManagePromoProgram";
 import PromoTimeSlot from "../pages/managePromo/PromoTimeSlot";
 import ManageBlog from "../pages/ManageBlog";
+import ManageTeacherView from "../pages/manageTeacherView";
+import ManageReport from "../pages/ManageReport";
+
 import ManageAudit from "../pages/ManageLogs";
 
 const userRoutes = [
@@ -71,6 +74,10 @@ const userRoutes = [
   { path: "/manage-partner", component: <ManagePartner/> },
 
   { path: "/manage-promo", component: <ManagePromo/> },
+
+  { path: "/manage-teacher-view", component: <ManageTeacherView/> },
+
+  { path: "/manage-report", component: <ManageReport /> },
   
   { path: "/manage-testimonial", component: <ManageTestimonial/> },
 

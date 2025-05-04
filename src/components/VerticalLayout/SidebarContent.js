@@ -294,6 +294,22 @@ const SidebarContent = props => {
                 <span>{props.t("Manage Adhoc")}</span>
               </Link>
             </li>
+            <li>
+              <Link to="/manage-report" className="">
+                <FeatherIcon
+                    icon="award"
+                />{" "}
+                <span>{props.t("Manage Report")}</span>
+              </Link>
+            </li>
+            <li>
+              <Link to="/manage-teacher-view" className="">
+                <FeatherIcon
+                    icon="eye"
+                />{" "}
+                <span>{props.t("Manage Teacher View")}</span>
+              </Link>
+            </li>
             {/* <li>
               <Link to="/manage-promo-program" className="">
                 <FeatherIcon
